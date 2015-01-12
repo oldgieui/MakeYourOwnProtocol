@@ -13,60 +13,68 @@ struct sockaddr_in serveraddr;
 ChannelNumber g_channel;
 ID g_id;
 
-int Login(unsigned int channel, unsigned int id, int lossRate)
-{
-    char buf[MAX_PACKET_SIZE];
-    
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0)
-        return -1;
-    
-    // init serveraddr
-    serveraddr.sin_family = AF_INET;
-    serveraddr.sin_addr.s_addr = inet_addr(SERVER_IP);
-    serveraddr.sin_port = htons(PORT);
-    
-    // set non-block socket
-    int flag;
-    flag = fcntl( sockfd, F_GETFL, 0 );
-    fcntl( sockfd, F_SETFL, flag | O_NONBLOCK );
-    
-    // prepare login packet
-    LoginPacket outPacket;
-    outPacket.m_UniqueKey = LOGIN_UNIQUE_KEY;
-    outPacket.m_ChannelNumber = channel;
-    outPacket.m_ID = id;
-    outPacket.m_LossRate = lossRate;
-    
-    int tryCount = 0;
-    while (tryCount < LOGIN_MAX_TRY_COUNT) {
-        tryCount++;
-        
-        ssize_t sendLen = sendto(sockfd, (char*)&outPacket, sizeof(outPacket), 0, (struct sockaddr *)&serveraddr, sizeof(serveraddr));
-        if (sendLen < 0) {
-            printf("Error for Send : %d / %s\n",errno, strerror(errno));
-            printf("Maybe Server Is Down. Plz Ask to ServerManager - 010-4345-4341\n");
-            return -1;
-        }
-        
-        sleep(1);
-        
-	ssize_t n = recvfrom(sockfd, buf, MAX_PACKET_SIZE, 0, NULL, NULL);
-		
-        if ((n == sizeof(LoginPacket)) && (memcmp(&outPacket, buf, n) == 0)) {
-            g_channel = channel;
-            g_id = id;
-            return 0;
-        } else {
-            if( n < 0)
-                continue;
-            else
-                return -1;
-        }
-    }
-    
-    // tryCount over LOGIN_MAX_TRY_COUNT
-    return -1;
+int Login(unsigned int channel, unsigned int id, int lossRate) {
+	char buf[MAX_PACKET_SIZE];
+
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0)
+		return -1;
+
+	// init serveraddr
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+	serveraddr.sin_port = htons(PORT);
+
+	// set non-block socket
+	int flag;
+	flag = fcntl(sockfd, F_GETFL, 0);
+	fcntl(sockfd, F_SETFL, flag | O_NONBLOCK);
+
+	// prepare login packet
+	LoginPacket outPacket;
+	outPacket.m_UniqueKey = LOGIN_UNIQUE_KEY;
+	outPacket.m_ChannelNumber = channel;
+	outPacket.m_ID = id;
+	outPacket.m_LossRate = lossRate;
+
+	int tryCount = 0;
+	while (tryCount < LOGIN_MAX_TRY_COUNT) {
+		tryCount++;
+
+		ssize_t sendLen = sendto(sockfd, (char*) &outPacket, sizeof(outPacket),
+				0, (struct sockaddr *) &serveraddr, sizeof(serveraddr));
+		if (sendLen < 0) {
+			printf("Error for Send : %d / %s\n", errno, strerror(errno));
+			printf(
+					"Maybe Server Is Down. Plz Ask to ServerManager - 010-4345-4341\n");
+			return -1;
+		}
+
+		sleep(1);
+
+		ssize_t n = recvfrom(sockfd, buf, MAX_PACKET_SIZE, 0, NULL, NULL);
+
+		if ((n == sizeof(LoginPacket)) && (memcmp(&outPacket, buf, n) == 0)) {
+			g_channel = channel;
+			g_id = id;
+
+//			printf("socket buf_size before set to 4096 : %d\n ", get_bufsize());
+//
+//			set_bufsize(4096);
+//
+//			printf("socket buf_size after set to 4096 : %d\n ", get_bufsize());
+
+			return 0;
+		} else {
+			if (n < 0)
+				continue;
+			else
+				return -1;
+		}
+	}
+
+	// tryCount over LOGIN_MAX_TRY_COUNT
+	return -1;
 }
 
 int Send(char* buf, size_t length)
@@ -115,3 +123,16 @@ int kbhit(void)
     return 0;
 }
 
+int get_bufsize(void) {
+	int buf_size = 0;
+	int optlen = sizeof(int);
+
+	getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (void*) &buf_size, &optlen);
+	return buf_size;
+}
+
+int set_bufsize(int size) {
+	socklen_t optlen = sizeof(int);
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (void*) &size, optlen);
+	setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (void*) &size, optlen);
+}

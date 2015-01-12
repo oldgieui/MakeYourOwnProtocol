@@ -39,6 +39,9 @@ typedef unsigned int ID;
 int Login(ChannelNumber channel, ID id, int lossRate);
 int Send(char* buf, size_t length);
 
+int get_bufsize(void);
+int set_bufsize(int size);
+
 // 0 : no recv
 // <0 : error
 // n(>0) : recv length n
