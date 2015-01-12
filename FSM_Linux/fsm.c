@@ -146,6 +146,7 @@ static void data_success(void *p)
 	int idx = ((struct p_event*)p)->recv_packet.index;
 	printf("data transfer complete : [%d].\n", idx);
 	packet_index++;
+	data_count++;
 }
 
 struct state_action p_FSM[NUM_STATE][NUM_EVENT] = {
@@ -221,7 +222,7 @@ struct p_event *get_event(void) {
 			break;
 		case '2':
 			event.event = SEND;
-			sprintf(event.packet.data, "%09d", data_count++);
+			sprintf(event.packet.data, "%09d", data_count);
 			event.size = strlen(event.packet.data) + 1;
 			break;
 		case '3':
